@@ -1,0 +1,10 @@
+[target.thumbv7m-none-eabi]
+runner = "gdb-multiarch -q -x openocd.gdb"
+
+rustflags = [
+  "-C", "linker=rust-lld",
+  "-C", "link-arg=-Tlink.x",
+]
+
+[build]
+target = "thumbv7m-none-eabi"
