@@ -81,15 +81,17 @@ fn dma_set_addr<T1, T2>(channel: &mut dma1::C1, src: &[T1], dst: &mut [T2]) {
     }
 }
 
-fn measure_cycles<F>(f: F) -> u32
+fn measure_cycles<F>(count: usize, mut f: F) -> u32
 where
-    F: FnOnce(),
+    F: FnMut(),
 {
     let start_cyc = DWT::get_cycle_count();
 
-    f();
+    for _i in 0..count {
+        f();
+    }
 
-    DWT::get_cycle_count() - start_cyc
+    (DWT::get_cycle_count() - start_cyc) / (count as u32)
 }
 
 macro_rules! bench {
@@ -104,7 +106,7 @@ macro_rules! bench {
             set(&mut src);
             clear(&mut dst);
 
-            let dma_cycles = measure_cycles(|| {
+            let dma_cycles = measure_cycles(8, || {
                 dma_set_addr(&mut $ch, &src, &mut dst);
                 $ch.start();
                 while $ch.in_progress() {}
@@ -114,8 +116,8 @@ macro_rules! bench {
             assert!(validate(&mut dst), "failed to validate dma result");
             clear(&mut dst);
 
-            let cpu_cycles = measure_cycles(|| {
-                for i in 0..src.len() {
+            let cpu_cycles = measure_cycles(8, || {
+                for i in 0..$buf_size {
                     dst[i] = (src[i] as DstTy).into();
                 }
             });
