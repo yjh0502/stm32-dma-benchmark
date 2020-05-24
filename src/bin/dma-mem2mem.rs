@@ -118,7 +118,7 @@ macro_rules! bench {
 
             let cpu_cycles = measure_cycles(8, || {
                 for i in 0..$buf_size {
-                    dst[i] = (src[i] as DstTy).into();
+                    dst[i] = src[i] as DstTy;
                 }
             });
 
@@ -175,6 +175,40 @@ macro_rules! bench_run {
     };
 }
 
+/// sample code from gotbolt, to check if a number matches with benchmark
+/// https://godbolt.org/z/94wBhT
+mod gotbolt {
+    use super::*;
+
+    type Ty = u32;
+
+    fn copy(src: &[Ty], dst: &mut [Ty]) {
+        for i in 0..src.len() {
+            dst[i] = src[i];
+        }
+    }
+
+    pub fn run() {
+        const LEN: usize = 128;
+        let mut src: [Ty; LEN] = [0; LEN];
+        let mut dst: [Ty; LEN] = [0; LEN];
+
+        for i in 0..src.len() {
+            src[i] = i as Ty;
+        }
+
+        let start_cyc = DWT::get_cycle_count();
+        copy(&src, &mut dst);
+        let cycles = DWT::get_cycle_count() - start_cyc;
+
+        for i in 0..dst.len() {
+            assert_eq!(src[i], dst[i]);
+        }
+
+        hprintln!("len={}, cycles={}", LEN, cycles).ok();
+    }
+}
+
 #[entry]
 fn main() -> ! {
     // Acquire peripherals
@@ -198,6 +232,8 @@ fn main() -> ! {
         clocks.sysclk().0 / 1_000_000,
     )
     .ok();
+
+    gotbolt::run();
 
     hprintln!(
         "count,src_ty,dst_ty,dma_cycles,dma_cycles_per_8bytes,cpu_cycles,cpu_cycle_per_8bytes"
