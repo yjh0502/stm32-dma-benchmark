@@ -130,7 +130,7 @@ macro_rules! bench {
             let dma_cycle_per_8byte = dma_cycles * 8 / read_size;
             let cpu_cycle_per_8byte = cpu_cycles * 8 / read_size;
 
-            let mut msg = arrayvec::ArrayString::<[u8; 128]>::new();
+            let mut msg = arrayvec::ArrayString::<128>::new();
 
             write!(
                 &mut msg,
@@ -212,6 +212,7 @@ mod gotbolt {
 #[entry]
 fn main() -> ! {
     // Acquire peripherals
+    let mut cp = pac::CorePeripherals::take().unwrap();
     let p = pac::Peripherals::take().unwrap();
     let mut flash = p.FLASH.constrain();
     let mut rcc = p.RCC.constrain();
@@ -234,6 +235,8 @@ fn main() -> ! {
     .ok();
 
     gotbolt::run();
+
+    cp.DWT.enable_cycle_counter();
 
     hprintln!(
         "count,src_ty,dst_ty,dma_cycles,dma_cycles_per_8bytes,cpu_cycles,cpu_cycle_per_8bytes"
